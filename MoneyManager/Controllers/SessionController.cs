@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Mvc;
@@ -50,7 +52,8 @@ namespace MoneyManager.Controllers
 				CreditCardNumber int,
 				Ballance decimal,
 				Token varchar(255),
-				ImageUrl varchar(255));",
+				ImageUrl varchar(255),
+				Friends varchar(2048));",
 				myConnection);
 
 			createUsersCommand.Connection = myConnection;
@@ -61,9 +64,18 @@ namespace MoneyManager.Controllers
 		[HttpPost]
 		public async Task<ActionResult> Register(RegisterUserModel userModel)
 		{
+			var allUsers = (await GetAllUsers()).ToList();
+
+			if (allUsers.Any(w => w.Email == userModel.Email))
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			var maxId = allUsers.Any()? allUsers.Max(w => w.Id) : 0;
+
 			await myConnection.OpenAsync();
 			SqlCommand myCommand = new SqlCommand("INSERT INTO Users (Id, UserName, Surname, Email, Password, PhoneNumber, CreditCardNumber, Ballance, ImageUrl) " +
-												  $"Values ({0},'{userModel.UserName}', '{userModel.Surname}', '{userModel.Email}', '{userModel.Password}', '{userModel.PhoneNumber}', '{userModel.CreditCardNumber}', '{100.4}', '{userModel.ImageUrl}')", myConnection);
+												  $"Values ({maxId + 1},'{userModel.UserName}', '{userModel.Surname}', '{userModel.Email}', '{userModel.Password}', '{userModel.PhoneNumber}', '{userModel.CreditCardNumber}', '{100.4}', '{userModel.ImageUrl}')", myConnection);
 
 			await myCommand.ExecuteNonQueryAsync();
 
@@ -131,5 +143,36 @@ namespace MoneyManager.Controllers
 			};
 		}
 
+		private async Task<IEnumerable<UserModel>> GetAllUsers()
+		{
+			await myConnection.OpenAsync();
+
+			SqlCommand selectCommand = new SqlCommand($"SELECT * FROM Users", myConnection);
+
+			var myReader = await selectCommand.ExecuteReaderAsync();
+
+			var users = new List<UserModel>();
+
+			while (await myReader.ReadAsync())
+			{
+				var userModel = new UserModel
+				{
+					Id = Int32.Parse(myReader["Id"].ToString()),
+					UserName = myReader["UserName"].ToString(),
+					Surname = myReader["Surname"].ToString(),
+					Email = myReader["Email"].ToString(),
+					PhoneNumber = Int32.Parse(myReader["PhoneNumber"].ToString()),
+					CreditCardNumber = Int32.Parse(myReader["CreditCardNumber"].ToString()),
+					Token = myReader["Token"].ToString(),
+					ImageUrl = myReader["ImageUrl"].ToString(),
+					Ballance = Double.Parse(myReader["Ballance"].ToString())
+				};
+
+				users.Add(userModel);
+			}
+
+			myConnection.Close();
+			return users;
+		}
 	}
 }
