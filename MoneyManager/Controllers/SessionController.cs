@@ -6,7 +6,7 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Web.Mvc;
 using MoneyManager.Models;
-using Newtonsoft.Json;
+using System.IO;
 
 namespace MoneyManager.Controllers
 {
@@ -48,8 +48,8 @@ namespace MoneyManager.Controllers
 				Surname varchar(255),
 				Email varchar(255),
 				Password varchar(255),
-				PhoneNumber int,
-				CreditCardNumber int,
+				PhoneNumber bigint,
+				CreditCardNumber bigint,
 				Ballance decimal,
 				Token varchar(255),
 				ImageUrl varchar(255),
@@ -59,6 +59,42 @@ namespace MoneyManager.Controllers
 			createUsersCommand.Connection = myConnection;
 			await createUsersCommand.ExecuteNonQueryAsync();
 			myConnection.Close();
+		}
+
+		private async Task SaveImagesAsync(RegisterUserModel userModel)
+		{
+			var host = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+
+			var imageBytes = string.IsNullOrEmpty(userModel.ImageBase64String) ? null : Convert.FromBase64String(userModel.ImageBase64String);
+			var backgroundBytes = string.IsNullOrEmpty(userModel.BackgroundImageBase64String) ? null : Convert.FromBase64String(userModel.BackgroundImageBase64String);
+
+			if(!Directory.Exists($"{host}\\Images"))
+			{
+				Directory.CreateDirectory($"{host}\\Images");
+			}
+
+			if (imageBytes != null)
+			{
+				await SaveImageAsync($"{host}\\Images\\{userModel.Id}-avatar.jpg", imageBytes);
+			}
+
+			if (backgroundBytes != null)
+			{
+				await SaveImageAsync($"{host}\\Images\\{userModel.Id}-background.jpg", backgroundBytes);
+			}
+		}
+
+		private async Task SaveImageAsync(string fileName, byte[] imageBytes)
+		{
+			if(System.IO.File.Exists(fileName))
+			{
+				System.IO.File.Delete(fileName);
+			}
+
+			using (var bw = new FileStream(fileName, FileMode.CreateNew))
+			{
+				await bw.WriteAsync(imageBytes, 0, imageBytes.Length);
+			}
 		}
 
 		[HttpPost]
@@ -71,13 +107,16 @@ namespace MoneyManager.Controllers
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}
 
-			var maxId = allUsers.Any()? allUsers.Max(w => w.Id) : 0;
+			var maxId = allUsers.Any() ? allUsers.Max(w => w.Id) : 0;
+			userModel.Id = maxId + 1;
 
 			await myConnection.OpenAsync();
 			SqlCommand myCommand = new SqlCommand("INSERT INTO Users (Id, UserName, Surname, Email, Password, PhoneNumber, CreditCardNumber, Ballance, ImageUrl) " +
-												  $"Values ({maxId + 1},'{userModel.UserName}', '{userModel.Surname}', '{userModel.Email}', '{userModel.Password}', '{userModel.PhoneNumber}', '{userModel.CreditCardNumber}', '{100.4}', '{userModel.ImageUrl}')", myConnection);
+												  $"Values ({userModel.Id},'{userModel.UserName}', '{userModel.Surname}', '{userModel.Email}', '{userModel.Password}', '{userModel.PhoneNumber}', '{userModel.CreditCardNumber}', '{100.4}', '{userModel.ImageUrl}')", myConnection);
 
 			await myCommand.ExecuteNonQueryAsync();
+
+			await SaveImagesAsync(userModel);
 
 			myConnection.Close();
 
@@ -106,10 +145,9 @@ namespace MoneyManager.Controllers
 				Password = myReader["Password"].ToString(),
 				Surname = myReader["Surname"].ToString(),
 				Email = myReader["Email"].ToString(),
-				PhoneNumber = Int32.Parse(myReader["PhoneNumber"].ToString()),
-				CreditCardNumber = Int32.Parse(myReader["CreditCardNumber"].ToString()),
+				PhoneNumber = Int64.Parse(myReader["PhoneNumber"].ToString()),
+				CreditCardNumber = Int64.Parse(myReader["CreditCardNumber"].ToString()),
 				Token = myReader["Token"].ToString(),
-				ImageUrl = myReader["ImageUrl"].ToString(),
 				Ballance = Double.Parse(myReader["Ballance"].ToString())
 			};
 
@@ -137,8 +175,7 @@ namespace MoneyManager.Controllers
 					PhoneNumber = userModel.PhoneNumber,
 					Ballance = userModel.Ballance,
 					UserName = userModel.UserName,
-					Token = userModel.Token,
-					ImageUrl = userModel.ImageUrl
+					Token = token
 				}
 			};
 		}
@@ -161,10 +198,9 @@ namespace MoneyManager.Controllers
 					UserName = myReader["UserName"].ToString(),
 					Surname = myReader["Surname"].ToString(),
 					Email = myReader["Email"].ToString(),
-					PhoneNumber = Int32.Parse(myReader["PhoneNumber"].ToString()),
-					CreditCardNumber = Int32.Parse(myReader["CreditCardNumber"].ToString()),
+					PhoneNumber = Int64.Parse(myReader["PhoneNumber"].ToString()),
+					CreditCardNumber = Int64.Parse(myReader["CreditCardNumber"].ToString()),
 					Token = myReader["Token"].ToString(),
-					ImageUrl = myReader["ImageUrl"].ToString(),
 					Ballance = Double.Parse(myReader["Ballance"].ToString())
 				};
 

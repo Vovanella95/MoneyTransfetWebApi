@@ -35,10 +35,9 @@ namespace MoneyManager.Controllers
 				    UserName = myReader["UserName"].ToString(),
 				    Surname = myReader["Surname"].ToString(),
 				    Email = myReader["Email"].ToString(),
-				    PhoneNumber = Int32.Parse(myReader["PhoneNumber"].ToString()),
-				    CreditCardNumber = Int32.Parse(myReader["CreditCardNumber"].ToString()),
+				    PhoneNumber = Int64.Parse(myReader["PhoneNumber"].ToString()),
+				    CreditCardNumber = Int64.Parse(myReader["CreditCardNumber"].ToString()),
 				    Token = myReader["Token"].ToString(),
-					ImageUrl = myReader["ImageUrl"].ToString(),
 				    Ballance = Double.Parse(myReader["Ballance"].ToString())
 			    };
 

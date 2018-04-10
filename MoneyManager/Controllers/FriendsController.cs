@@ -54,6 +54,37 @@ namespace MoneyManager.Controllers
 		}
 
 		[HttpPost]
+		public async Task<ActionResult> Remove(AddFriendData userData)
+		{
+			var user = (await GetAllUsers()).FirstOrDefault(w => w.Email == userData.Email);
+
+			if (user == null || user.Token != userData.Token)
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			var userFriends = string.IsNullOrEmpty(user.Friends)
+				? new List<int>()
+				: JsonConvert.DeserializeObject<List<int>>(user.Friends);
+
+			if (userFriends.Any(w => w == userData.Id))
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			userFriends.Remove(userData.Id);
+
+			await myConnection.OpenAsync();
+
+			SqlCommand updateTokenCommand = new SqlCommand($"UPDATE Users SET Friends = '{JsonConvert.SerializeObject(userFriends)}' WHERE Email = '{user.Email}'", myConnection);
+			await updateTokenCommand.ExecuteNonQueryAsync();
+
+			myConnection.Close();
+
+			return new HttpStatusCodeResult(HttpStatusCode.OK);
+		}
+
+		[HttpPost]
 	    public async Task<ActionResult> All(GetUserDataModel userData)
 	    {
 		    var user = (await GetAllUsers()).FirstOrDefault(w => w.Email == userData.Email);
@@ -93,10 +124,9 @@ namespace MoneyManager.Controllers
 				    UserName = myReader["UserName"].ToString(),
 				    Surname = myReader["Surname"].ToString(),
 				    Email = myReader["Email"].ToString(),
-				    PhoneNumber = Int32.Parse(myReader["PhoneNumber"].ToString()),
-				    CreditCardNumber = Int32.Parse(myReader["CreditCardNumber"].ToString()),
+				    PhoneNumber = Int64.Parse(myReader["PhoneNumber"].ToString()),
+				    CreditCardNumber = Int64.Parse(myReader["CreditCardNumber"].ToString()),
 				    Token = myReader["Token"].ToString(),
-				    ImageUrl = myReader["ImageUrl"].ToString(),
 				    Friends = myReader["Friends"].ToString(),
 					Ballance = Double.Parse(myReader["Ballance"].ToString())
 			    };
