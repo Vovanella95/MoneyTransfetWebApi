@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -67,7 +68,7 @@ namespace MoneyManager.Controllers
 				? new List<int>()
 				: JsonConvert.DeserializeObject<List<int>>(user.Friends);
 
-			if (userFriends.Any(w => w == userData.Id))
+			if (userFriends.All(w => w == userData.Id))
 			{
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}

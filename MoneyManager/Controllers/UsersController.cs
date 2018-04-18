@@ -17,7 +17,7 @@ namespace MoneyManager.Controllers
             return View();
         }
 
-	    private async Task<IEnumerable<UserModel>> GetAllUsers()
+	    public async Task<IEnumerable<UserModel>> GetAllUsers()
 	    {
 		    await myConnection.OpenAsync();
 

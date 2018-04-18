@@ -22,6 +22,7 @@ namespace MoneyManager.Controllers
 		public async Task<ActionResult> Initialize()
 		{
 			await CreateUsersTable();
+			await CreateTransactionsTable();
 			return null;
 		}
 
@@ -58,6 +59,41 @@ namespace MoneyManager.Controllers
 
 			createUsersCommand.Connection = myConnection;
 			await createUsersCommand.ExecuteNonQueryAsync();
+			myConnection.Close();
+		}
+
+		private async Task CreateTransactionsTable()
+		{
+			await myConnection.OpenAsync();
+
+			SqlCommand deleteUsersCommand = new SqlCommand("DROP TABLE Transactions;", myConnection);
+			deleteUsersCommand.Connection = myConnection;
+
+			try
+			{
+				await deleteUsersCommand.ExecuteNonQueryAsync();
+			}
+			catch (Exception e)
+			{
+
+			}
+
+			SqlCommand createTransactionsCommand = new SqlCommand(@"
+				CREATE TABLE Transactions(
+				Id int,
+				DeadlineDate varchar(255),
+				Title varchar(255),
+				Description varchar(1024),
+				CreationDate varchar(255),
+				OwnerId int,
+				CollaboratorsIds varchar(1024),
+				InProgressIds varchar(1024),
+				FinishedIds varchar(1024),
+				Coast decimal);",
+				myConnection);
+
+			createTransactionsCommand.Connection = myConnection;
+			await createTransactionsCommand.ExecuteNonQueryAsync();
 			myConnection.Close();
 		}
 
