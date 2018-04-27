@@ -8,8 +8,5 @@ namespace MoneyManager.Models
 		public IEnumerable<int> FinishedIds { get; set; }
 		public IEnumerable<int> InProgressIds { get; set; }
 		public string ImageBase64String { get; set; }
-
-		public string Email { get; set; }
-		public string Token { get; set; }
 	}
 }

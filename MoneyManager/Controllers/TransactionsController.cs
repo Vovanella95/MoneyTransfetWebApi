@@ -37,9 +37,12 @@ namespace MoneyManager.Controllers
 		{
 			var allTransactions = await GetAllTransactions();
 
-			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == transaction.Email);
+			var email = Request.Headers["X-USERNAME"];
+			var token = Request.Headers["X-TOKEN"];
 
-			if (user == null || user.Token != transaction.Token)
+			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == email);
+
+			if (user == null || user.Token != token)
 			{
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}
@@ -171,6 +174,63 @@ namespace MoneyManager.Controllers
 				InProgressIds = JsonConvert.SerializeObject(model.InProgressIds),
 				Title = model.Title
 			};
+		}
+
+		[HttpGet]
+		public async Task<ActionResult> My()
+		{
+			var email = Request.Headers["X-USERNAME"];
+			var token = Request.Headers["X-TOKEN"];
+
+			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == email);
+
+			if (user == null || user.Token != token)
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			var transactions = (await Map(await GetAllTransactions())).Where(w => w.Owner.Id == user.Id);
+
+			return new JsonResult
+			{
+				JsonRequestBehavior = JsonRequestBehavior.AllowGet,
+				Data = transactions
+			};
+		}
+
+		[HttpPost]
+		public async Task<ActionResult> Collaborate(int id)
+		{
+			var email = Request.Headers["X-USERNAME"];
+			var token = Request.Headers["X-TOKEN"];
+
+			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == email);
+			var transaction = (await GetAllTransactions()).FirstOrDefault(w => w.Id == id);
+			if (user == null || user.Token != token || transaction == null)
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			var collaboratorsIds = JsonConvert.DeserializeObject<int[]>(transaction.CollaboratorsIds);
+			var inProgressIds = JsonConvert.DeserializeObject<int[]>(transaction.InProgressIds).ToList();
+
+			if (collaboratorsIds.All(w => w != user.Id))
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "you have no participation at this transaction");
+			}
+
+			if (!inProgressIds.Contains(user.Id))
+			{
+				inProgressIds.Add(user.Id);
+			}
+
+			await myConnection.OpenAsync();
+			SqlCommand updateTokenCommand = new SqlCommand($"UPDATE Transactions SET CollaboratorsIds = '{JsonConvert.SerializeObject(inProgressIds)}' WHERE Id = '{transaction.Id}'", myConnection);
+			await updateTokenCommand.ExecuteNonQueryAsync();
+
+			myConnection.Close();
+
+			return new HttpStatusCodeResult(200);
 		}
 	}
 }
