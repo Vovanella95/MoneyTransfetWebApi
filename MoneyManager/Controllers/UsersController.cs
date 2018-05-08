@@ -38,12 +38,14 @@ namespace MoneyManager.Controllers
 				    PhoneNumber = Int64.Parse(myReader["PhoneNumber"].ToString()),
 				    CreditCardNumber = Int64.Parse(myReader["CreditCardNumber"].ToString()),
 				    Token = myReader["Token"].ToString(),
-				    Ballance = Double.Parse(myReader["Ballance"].ToString())
+				    Ballance = Double.Parse(myReader["Ballance"].ToString()),
+					Friends = myReader["Friends"].ToString()
 			    };
 
 				users.Add(userModel);
 			}
 
+			myReader.Close();
 		    return users;
 	    }
 

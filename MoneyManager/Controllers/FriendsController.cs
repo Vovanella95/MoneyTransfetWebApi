@@ -24,30 +24,34 @@ namespace MoneyManager.Controllers
         }
 
 		[HttpPost]
-	    public async Task<ActionResult> Add(AddFriendData userData)
+	    public async Task<ActionResult> Add(int friendId)
 	    {
-		    var user = (await GetAllUsers()).FirstOrDefault(w => w.Email == userData.Email);
+			var email = Request.Headers["X-USERNAME"];
+			var token = Request.Headers["X-TOKEN"];
 
-		    if (user == null || user.Token != userData.Token)
-		    {
+			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == email);
+
+			if (user == null || user.Token != token)
+			{
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-		    }
+			}
 
 		    var userFriends = string.IsNullOrEmpty(user.Friends)
 			    ? new List<int>()
 			    : JsonConvert.DeserializeObject<List<int>>(user.Friends);
 
-		    if (userFriends.Any(w => w == userData.Id))
+		    if (userFriends.Any(w => w == friendId))
 		    {
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}
 
-			userFriends.Add(userData.Id);
+			userFriends.Add(friendId);
 
 		    await myConnection.OpenAsync();
+			var serializedValue = JsonConvert.SerializeObject(userFriends);
 
-		    SqlCommand updateTokenCommand = new SqlCommand($"UPDATE Users SET Friends = '{JsonConvert.SerializeObject(userFriends)}' WHERE Email = '{user.Email}'", myConnection);
-		    await updateTokenCommand.ExecuteNonQueryAsync();
+			SqlCommand updateTokenCommand = new SqlCommand($"UPDATE Users SET Friends = '{serializedValue}' WHERE Email = '{user.Email}'", myConnection);
+			await updateTokenCommand.ExecuteNonQueryAsync();
 
 			myConnection.Close();
 
@@ -55,11 +59,14 @@ namespace MoneyManager.Controllers
 		}
 
 		[HttpPost]
-		public async Task<ActionResult> Remove(AddFriendData userData)
+		public async Task<ActionResult> Remove(int friendId)
 		{
-			var user = (await GetAllUsers()).FirstOrDefault(w => w.Email == userData.Email);
+			var email = Request.Headers["X-USERNAME"];
+			var token = Request.Headers["X-TOKEN"];
 
-			if (user == null || user.Token != userData.Token)
+			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == email);
+
+			if (user == null || user.Token != token)
 			{
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}
@@ -68,12 +75,12 @@ namespace MoneyManager.Controllers
 				? new List<int>()
 				: JsonConvert.DeserializeObject<List<int>>(user.Friends);
 
-			if (userFriends.All(w => w == userData.Id))
+			if (userFriends.All(w => w == friendId))
 			{
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}
 
-			userFriends.Remove(userData.Id);
+			userFriends.Remove(friendId);
 
 			await myConnection.OpenAsync();
 
@@ -85,17 +92,19 @@ namespace MoneyManager.Controllers
 			return new HttpStatusCodeResult(HttpStatusCode.OK);
 		}
 
-		[HttpPost]
-	    public async Task<ActionResult> All(GetUserDataModel userData)
+	    public async Task<ActionResult> All()
 	    {
-		    var user = (await GetAllUsers()).FirstOrDefault(w => w.Email == userData.Email);
+			var email = Request.Headers["X-USERNAME"];
+			var token = Request.Headers["X-TOKEN"];
 
-		    if (user == null || user.Token != userData.Token)
-		    {
-			    return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-		    }
+			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == email);
 
-		    var userFriends = string.IsNullOrEmpty(user.Friends)
+			if (user == null || user.Token != token)
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			var userFriends = string.IsNullOrEmpty(user.Friends)
 			    ? new List<int>()
 			    : JsonConvert.DeserializeObject<List<int>>(user.Friends);
 
@@ -103,7 +112,8 @@ namespace MoneyManager.Controllers
 
 		    return new JsonResult
 		    {
-				Data = friends
+				Data = friends,
+				JsonRequestBehavior = JsonRequestBehavior.AllowGet
 		    };
 	    }
 

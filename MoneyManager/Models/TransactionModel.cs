@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MoneyManager.Models
 {
@@ -7,6 +8,8 @@ namespace MoneyManager.Models
 	{
 		public int Id { get; set; }
 		public DateTime DeadlineDate { get; set; }
+		public bool IsClosed => Collaborators != null && Finished != null && Collaborators.Count() == Finished.Count();
+		public double SingleCost => Collaborators != null ? Coast / Collaborators.Count() : 0;
 		public string Title { get; set; }
 		public string Description { get; set; }
 		public DateTime CreationDate { get; set; }

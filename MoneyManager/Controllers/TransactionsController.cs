@@ -232,5 +232,41 @@ namespace MoneyManager.Controllers
 
 			return new HttpStatusCodeResult(200);
 		}
+
+		[HttpPost]
+		public async Task<ActionResult> Approve(int transactionId, int userId)
+		{
+			var email = Request.Headers["X-USERNAME"];
+			var token = Request.Headers["X-TOKEN"];
+
+			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == email);
+			var transaction = (await GetAllTransactions()).FirstOrDefault(w => w.Id == transactionId);
+
+			if (user == null || user.Token != token || transaction == null)
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			var collaboratorsIds = JsonConvert.DeserializeObject<int[]>(transaction.CollaboratorsIds);
+			var finishedIds = JsonConvert.DeserializeObject<int[]>(transaction.FinishedIds).ToList();
+
+			if(transaction.OwnerId != user.Id || collaboratorsIds.All(w => w != userId))
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "you have no participation at this transaction");
+			}
+
+			if (!finishedIds.Contains(userId))
+			{
+				finishedIds.Add(userId);
+			}
+
+			await myConnection.OpenAsync();
+			SqlCommand updateTokenCommand = new SqlCommand($"UPDATE Transactions SET FinishedIds = '{JsonConvert.SerializeObject(finishedIds)}' WHERE Id = '{transaction.Id}'", myConnection);
+			await updateTokenCommand.ExecuteNonQueryAsync();
+
+			myConnection.Close();
+
+			return new HttpStatusCodeResult(200);
+		}
 	}
 }
