@@ -157,6 +157,7 @@
     <Compile Include="Models\GetUserDataModel.cs" />
     <Compile Include="Models\LoginUserModel.cs" />
     <Compile Include="Models\RegisterUserModel.cs" />
+    <Compile Include="Models\TestUserModel.cs" />
     <Compile Include="Models\TransactionDataModel.cs" />
     <Compile Include="Models\TransactionModel.cs" />
     <Compile Include="Models\UserModel.cs" />

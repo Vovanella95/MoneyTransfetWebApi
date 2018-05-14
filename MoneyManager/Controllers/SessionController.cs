@@ -45,16 +45,16 @@ namespace MoneyManager.Controllers
 			SqlCommand createUsersCommand = new SqlCommand(@"
 				CREATE TABLE Users (
 				Id int,
-				UserName varchar(255),
-				Surname varchar(255),
-				Email varchar(255),
-				Password varchar(255),
+				UserName nvarchar(255),
+				Surname nvarchar(255),
+				Email nvarchar(255),
+				Password nvarchar(255),
 				PhoneNumber bigint,
 				CreditCardNumber bigint,
 				Ballance decimal,
-				Token varchar(255),
-				ImageUrl varchar(255),
-				Friends varchar(2048));",
+				Token nvarchar(255),
+				ImageUrl nvarchar(255),
+				Friends nvarchar(2048));",
 				myConnection);
 
 			createUsersCommand.Connection = myConnection;
@@ -81,14 +81,14 @@ namespace MoneyManager.Controllers
 			SqlCommand createTransactionsCommand = new SqlCommand(@"
 				CREATE TABLE Transactions(
 				Id int,
-				DeadlineDate varchar(255),
-				Title varchar(255),
-				Description varchar(1024),
-				CreationDate varchar(255),
+				DeadlineDate nvarchar(255),
+				Title nvarchar(255),
+				Description nvarchar(1024),
+				CreationDate nvarchar(255),
 				OwnerId int,
-				CollaboratorsIds varchar(1024),
-				InProgressIds varchar(1024),
-				FinishedIds varchar(1024),
+				CollaboratorsIds nvarchar(1024),
+				InProgressIds nvarchar(1024),
+				FinishedIds nvarchar(1024),
 				Coast decimal);",
 				myConnection);
 
@@ -101,33 +101,48 @@ namespace MoneyManager.Controllers
 		{
 			var host = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
 
-			var imageBytes = string.IsNullOrEmpty(userModel.ImageBase64String) ? null : Convert.FromBase64String(userModel.ImageBase64String);
-			var backgroundBytes = string.IsNullOrEmpty(userModel.BackgroundImageBase64String) ? null : Convert.FromBase64String(userModel.BackgroundImageBase64String);
-
-			if(!Directory.Exists($"{host}\\Images"))
+			try
 			{
-				Directory.CreateDirectory($"{host}\\Images");
+				var imageBytes = string.IsNullOrEmpty(userModel.ImageBase64String) ? null : Convert.FromBase64String(userModel.ImageBase64String);
+
+				if (imageBytes != null)
+				{
+					await SaveImageAsync($"{host}\\Images\\{userModel.Id}-avatar.jpg", imageBytes);
+				}
+			}
+			catch(Exception)
+			{
+				// ignore
 			}
 
-			if (imageBytes != null)
+			try
 			{
-				await SaveImageAsync($"{host}\\Images\\{userModel.Id}-avatar.jpg", imageBytes);
-			}
+				var backgroundBytes = string.IsNullOrEmpty(userModel.BackgroundImageBase64String) ? null : Convert.FromBase64String(userModel.BackgroundImageBase64String);
 
-			if (backgroundBytes != null)
+				if (!Directory.Exists($"{host}\\Images"))
+				{
+					Directory.CreateDirectory($"{host}\\Images");
+				}
+
+				if (backgroundBytes != null)
+				{
+					await SaveImageAsync($"{host}\\Images\\{userModel.Id}-background.jpg", backgroundBytes);
+				}
+			}
+			catch(Exception)
 			{
-				await SaveImageAsync($"{host}\\Images\\{userModel.Id}-background.jpg", backgroundBytes);
+				// ignore
 			}
 		}
 
 		private async Task SaveImageAsync(string fileName, byte[] imageBytes)
 		{
-			if(System.IO.File.Exists(fileName))
+			if (System.IO.File.Exists(fileName))
 			{
 				System.IO.File.Delete(fileName);
 			}
 
-			using (var bw = new FileStream(fileName, FileMode.CreateNew))
+			using (var bw = new FileStream(fileName, FileMode.Create))
 			{
 				await bw.WriteAsync(imageBytes, 0, imageBytes.Length);
 			}
@@ -138,7 +153,7 @@ namespace MoneyManager.Controllers
 		{
 			var allUsers = (await GetAllUsers()).ToList();
 
-			if (allUsers.Any(w => w.Email == userModel.Email))
+			if (string.IsNullOrEmpty(userModel.Email) || string.IsNullOrEmpty(userModel.Password) || allUsers.Any(w => w.Email == userModel.Email))
 			{
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}
@@ -148,7 +163,7 @@ namespace MoneyManager.Controllers
 
 			await myConnection.OpenAsync();
 			SqlCommand myCommand = new SqlCommand("INSERT INTO Users (Id, UserName, Surname, Email, Password, PhoneNumber, CreditCardNumber, Ballance, ImageUrl) " +
-												  $"Values ({userModel.Id},'{userModel.UserName}', '{userModel.Surname}', '{userModel.Email}', '{userModel.Password}', '{userModel.PhoneNumber}', '{userModel.CreditCardNumber}', '{100.4}', '{userModel.ImageUrl}')", myConnection);
+												  $"Values ({userModel.Id},N'{userModel.UserName}', N'{userModel.Surname}', N'{userModel.Email}', N'{userModel.Password}', '{userModel.PhoneNumber}', '{userModel.CreditCardNumber}', '{100.4}', '{userModel.ImageUrl}')", myConnection);
 
 			await myCommand.ExecuteNonQueryAsync();
 

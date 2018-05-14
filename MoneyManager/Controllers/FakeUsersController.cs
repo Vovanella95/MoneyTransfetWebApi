@@ -15,13 +15,13 @@ namespace MoneyManager.Controllers
 			new Tuple<RegisterUserModel, string, string>(
 				new RegisterUserModel
 			{
-				UserName = "Uladzislau",
+				UserName = "Владислав",
 				Ballance = 18.4,
 				CreditCardNumber = 1267120816081929,
 				Email = "vlad_nagibator12@mail.ru",
 				Password = "1234abcd",
 				PhoneNumber = 375292466780,
-				Surname = "Kunda"
+				Surname = "Русский"
 			},
 				"https://pp.userapi.com/c834200/v834200714/109b45/D7DmwZ1lvaA.jpg",
 				"https://image.freepik.com/free-vector/nice-background-with-polygonal-shapes_1159-452.jpg"),

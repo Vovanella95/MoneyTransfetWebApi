@@ -17,7 +17,7 @@ namespace MoneyManager.Controllers
             return View();
         }
 
-	    public async Task<IEnumerable<UserModel>> GetAllUsers()
+	    public async Task<IEnumerable<UserModel>> GetAllUsers(bool includeSecretInfo = false)
 	    {
 		    await myConnection.OpenAsync();
 
@@ -27,9 +27,10 @@ namespace MoneyManager.Controllers
 
 		    var users = new List<UserModel>();
 
-			while(await myReader.ReadAsync())
+			while (await myReader.ReadAsync())
 		    {
-			    var userModel = new UserModel
+				var tt = myReader["Surname"].ToString().ToCharArray();
+				var userModel = new UserModel
 			    {
 				    Id = Int32.Parse(myReader["Id"].ToString()),
 				    UserName = myReader["UserName"].ToString(),

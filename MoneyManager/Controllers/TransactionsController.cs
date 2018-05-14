@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System.Linq;
 using System.Net;
 using System.IO;
+using System.Text;
 
 namespace MoneyManager.Controllers
 {
@@ -22,7 +23,6 @@ namespace MoneyManager.Controllers
 
 		public async Task<ActionResult> All()
 		{
-
 			var transactions = (await GetAllTransactions());
 			var maped = await Map(transactions);
 
@@ -56,7 +56,7 @@ namespace MoneyManager.Controllers
 
 			await myConnection.OpenAsync();
 			SqlCommand myCommand = new SqlCommand("INSERT INTO Transactions (Id, Coast, CollaboratorsIds, CreationDate, DeadlineDate, Description, FinishedIds, InProgressIds, OwnerId, Title) " +
-												  $"Values ({data.Id},'{data.Coast}', '{data.CollaboratorsIds}', '{data.CreationDate}', '{data.DeadlineDate}', '{data.Description}', '{data.FinishedIds}', '{data.InProgressIds}', '{data.OwnerId}', '{data.Title}')", myConnection);
+												  $"Values ({data.Id},'{data.Coast}', '{data.CollaboratorsIds}', '{data.CreationDate}', '{data.DeadlineDate}', N'{data.Description}', '{data.FinishedIds}', '{data.InProgressIds}', '{data.OwnerId}', N'{data.Title}')", myConnection);
 
 			await myCommand.ExecuteNonQueryAsync();
 
@@ -89,7 +89,7 @@ namespace MoneyManager.Controllers
 				System.IO.File.Delete(fileName);
 			}
 
-			using (var bw = new FileStream(fileName, FileMode.CreateNew))
+			using (var bw = new FileStream(fileName, FileMode.Create))
 			{
 				await bw.WriteAsync(imageBytes, 0, imageBytes.Length);
 			}
@@ -118,6 +118,12 @@ namespace MoneyManager.Controllers
 
 		private TransactionDataModel ReadTransaction(SqlDataReader reader)
 		{
+			var title = reader["Title"];
+			byte[] utf8Bytes = Encoding.UTF8.GetBytes(title.ToString().ToCharArray());
+
+			String str2 = Encoding.UTF8.GetString(utf8Bytes);
+
+
 			return new TransactionDataModel
 			{
 				Id = Int32.Parse(reader["Id"].ToString()),
@@ -129,7 +135,7 @@ namespace MoneyManager.Controllers
 				DeadlineDate = reader["DeadlineDate"].ToString(),
 				Description = reader["Description"].ToString(),
 				OwnerId = Int32.Parse(reader["OwnerId"].ToString()),
-				Title = reader["Title"].ToString()
+				Title = str2
 			};
 		}
 
@@ -144,6 +150,8 @@ namespace MoneyManager.Controllers
 				var finishedIds = JsonConvert.DeserializeObject<int[]>(data.FinishedIds);
 				var inProgressIds = JsonConvert.DeserializeObject<int[]>(data.InProgressIds);
 
+				var owner = allUsers.First(w => w.Id == data.OwnerId);
+				owner.Friends = null;
 				resultCollection.Add(new TransactionModel
 				{
 					Coast = data.Coast,
@@ -154,7 +162,7 @@ namespace MoneyManager.Controllers
 					CreationDate = DateTime.Parse(data.CreationDate),
 					DeadlineDate = DateTime.Parse(data.DeadlineDate),
 					InProgress = allUsers.Where(w => inProgressIds != null && inProgressIds.Contains(w.Id)),
-					Owner = allUsers.First(w => w.Id == data.OwnerId),
+					Owner = owner,
 					Finished = allUsers.Where(w => finishedIds != null && finishedIds.Contains(w.Id))
 				});
 			}
@@ -177,7 +185,7 @@ namespace MoneyManager.Controllers
 		}
 
 		[HttpGet]
-		public async Task<ActionResult> My()
+		public async Task<ActionResult> My(bool isClosedOnly = false, bool isOpenedOnly = false, int? byUserId = null)
 		{
 			var email = Request.Headers["X-USERNAME"];
 			var token = Request.Headers["X-TOKEN"];
@@ -189,7 +197,21 @@ namespace MoneyManager.Controllers
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}
 
-			var transactions = (await Map(await GetAllTransactions())).Where(w => w.Owner.Id == user.Id);
+			var transactions = (await Map(await GetAllTransactions())).Where(w => w.Owner.Id == user.Id || w.Collaborators.Any(ww => ww.Id == user.Id));
+
+			if (isClosedOnly)
+			{
+				transactions = transactions.Where(w => w.IsClosed);
+			}
+			else if (isOpenedOnly)
+			{
+				transactions = transactions.Where(w => !w.IsClosed);
+			}
+
+			if (byUserId != null)
+			{
+				transactions = transactions.Where(w => w.Owner.Id == byUserId || w.Collaborators.Any(ww => ww.Id == byUserId));
+			}
 
 			return new JsonResult
 			{
@@ -250,7 +272,7 @@ namespace MoneyManager.Controllers
 			var collaboratorsIds = JsonConvert.DeserializeObject<int[]>(transaction.CollaboratorsIds);
 			var finishedIds = JsonConvert.DeserializeObject<int[]>(transaction.FinishedIds).ToList();
 
-			if(transaction.OwnerId != user.Id || collaboratorsIds.All(w => w != userId))
+			if (transaction.OwnerId != user.Id || collaboratorsIds.All(w => w != userId))
 			{
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "you have no participation at this transaction");
 			}
