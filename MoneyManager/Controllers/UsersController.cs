@@ -52,11 +52,7 @@ namespace MoneyManager.Controllers
 
 	    public async Task<ActionResult> All()
 	    {
-		    return new JsonResult
-		    {
-				Data = await GetAllUsers(),
-				JsonRequestBehavior = JsonRequestBehavior.AllowGet
-			};
+			return View(await GetAllUsers());
 	    }
 
 	    public async Task<ActionResult> Search(string query)

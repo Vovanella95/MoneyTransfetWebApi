@@ -1,0 +1,82 @@
+﻿@model IEnumerable<MoneyManager.Models.UserModel>
+
+@{
+    ViewBag.Title = "All";
+}
+
+<h2>
+    Total: @Model.Count()
+</h2>
+<br />
+
+
+@foreach (var item in Model)
+{
+    <div class="user-item-div" style="background-image:url('@item.BackgroundImageUrl');">
+        <div style="border-radius:50%; background:#868686; width: 80px; height:80px; float:left">
+            <img src="@item.ImageUrl" class="rounded-image" />
+        </div>
+        <div style="float:left; margin-left:16px; font-size:18px;">
+            @item.UserName @item.Surname<br />
+            <div style="font-size:14px; color:#666666">
+                <run class="user-data-run">Id:</run> @item.Id
+            </div>
+            <div style="font-size:14px; color:#666666">
+                <run class="user-data-run">Email:</run> @item.Email
+            </div>
+            <div style="font-size:14px; color:#666666">
+                <run class="user-data-run">Card number:</run>
+                @{ var cardString = item.CreditCardNumber.ToString();
+                    while (!string.IsNullOrEmpty(cardString))
+                    {
+                        var partOfNumbers = cardString.Substring(0, Math.Min(4, cardString.Length));
+                        Write(partOfNumbers);
+
+                        if (cardString.Length < 4)
+                        {
+                            cardString = string.Empty;
+                        }
+                        else
+                        {
+                            if (cardString.Length != 4)
+                            {
+                                Write("-");
+                            }
+
+                            cardString = cardString.Substring(4, Math.Min(cardString.Length - 4, cardString.Length));
+                        }
+                    }
+                }
+            </div>
+            <div style="font-size:14px; color:#666666">
+                <run class="user-data-run">Phone:</run> @item.PhoneNumber
+            </div>
+            <div style="font-size:14px; color:#666666">
+                <run class="user-data-run">Token:</run> @item.Token
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .rounded-image {
+        border-radius: 50%;
+        height: 80px;
+        width: 80px;
+        border: solid 1px #424242;
+    }
+
+    .user-item-div {
+        height: 168px;
+        background-color: rgba(255,255,255,0.8);
+        background-blend-mode: lighten;
+        background-size: cover;
+        padding: 8px;
+    }
+
+    .user-data-run {
+        color: #363636;
+        font-weight: bold;
+    }
+</style>
+</table>
