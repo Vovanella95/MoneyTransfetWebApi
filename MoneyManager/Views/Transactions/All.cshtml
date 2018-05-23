@@ -1,0 +1,87 @@
+﻿@model IEnumerable<MoneyManager.Models.TransactionModel>
+
+@{
+    ViewBag.Title = "All";
+}
+
+<h2>All</h2>
+
+<p>
+    @Html.ActionLink("Create New", "Create")
+</p>
+<table class="table">
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model.DeadlineDate)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.IsClosed)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.SingleCost)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Title)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Description)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.CreationDate)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Coast)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.OngoingDate)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ImageUrl)
+        </th>
+        <th>
+            Collaborators
+        </th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.DeadlineDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsClosed)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.SingleCost)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Title)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Description)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CreationDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Coast)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.OngoingDate)
+            </td>
+            <td>
+                <img src="@item.ImageUrl" style="width:120px;height:180px;display:block" />
+            </td>
+            <td>
+                <div style="float:left">
+                    @foreach (var user in item.Collaborators)
+                    {
+                        @user.UserName &nbsp; @user.Surname <br />
+                    }
+                </div>
+            </td>
+        </tr>
+    }
+
+</table>

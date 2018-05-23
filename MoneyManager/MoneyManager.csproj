@@ -178,7 +178,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="Properties\PublishProfiles\MoneyTransfer - FTP.pubxml" />
+    <None Include="Properties\PublishProfiles\MoneyTransfer - FTP1.pubxml" />
     <None Include="Properties\PublishProfiles\MoneyTransfer - Web Deploy.pubxml" />
+    <None Include="Properties\PublishProfiles\MoneyTransfer - Web Deploy1.pubxml" />
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
     <Content Include="Scripts\jquery-1.10.2.js" />
     <Content Include="Scripts\jquery-1.10.2.min.js" />
@@ -205,13 +207,13 @@
     <Content Include="Views\Home\Contact.cshtml" />
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Users\All.cshtml" />
+    <Content Include="Views\Transactions\All.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Views\FakeUsers\" />
     <Folder Include="Views\Friends\" />
     <Folder Include="Views\Images\" />
     <Folder Include="Views\Session\" />
-    <Folder Include="Views\Transactions\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fonts\glyphicons-halflings-regular.woff" />

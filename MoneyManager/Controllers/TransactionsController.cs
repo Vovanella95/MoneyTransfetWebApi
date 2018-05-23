@@ -26,11 +26,7 @@ namespace MoneyManager.Controllers
 			var transactions = (await GetAllTransactions());
 			var maped = await Map(transactions);
 
-			return new JsonResult
-			{
-				Data = maped,
-				JsonRequestBehavior = JsonRequestBehavior.AllowGet
-			};
+			return View(maped);
 		}
 
 		public async Task<ActionResult> Add(AddTransactionModel transaction)
@@ -55,14 +51,35 @@ namespace MoneyManager.Controllers
 			data.CreationDate = DateTime.UtcNow.ToString();
 
 			await myConnection.OpenAsync();
-			SqlCommand myCommand = new SqlCommand("INSERT INTO Transactions (Id, Coast, CollaboratorsIds, CreationDate, DeadlineDate, Description, FinishedIds, InProgressIds, OwnerId, Title) " +
-												  $"Values ({data.Id},'{data.Coast}', '{data.CollaboratorsIds}', '{data.CreationDate}', '{data.DeadlineDate}', N'{data.Description}', '{data.FinishedIds}', '{data.InProgressIds}', '{data.OwnerId}', N'{data.Title}')", myConnection);
+			SqlCommand myCommand = new SqlCommand("INSERT INTO Transactions (Id, Coast, CollaboratorsIds, CreationDate, DeadlineDate, Description, FinishedIds, InProgressIds, OwnerId, Title, OngoingDate) " +
+												  $"Values ({data.Id},'{data.Coast}', '{data.CollaboratorsIds}', '{data.CreationDate}', '{data.DeadlineDate}', N'{data.Description}', '{data.FinishedIds}', '{data.InProgressIds}', '{data.OwnerId}', N'{data.Title}', '{data.OngoingDate}')", myConnection);
 
 			await myCommand.ExecuteNonQueryAsync();
 
 			await SaveImagesAsync(transaction);
 
 			return new HttpStatusCodeResult(HttpStatusCode.OK);
+		}
+
+		public async Task AddUsingBot(AddTransactionModel transaction, UserModel user)
+		{
+			var allTransactions = await GetAllTransactions();
+
+			var id = allTransactions.Any() ? allTransactions.Max(w => w.Id) + 1 : 0;
+
+			var data = Map(transaction);
+			data.Id = id;
+			data.OwnerId = user.Id;
+			data.CreationDate = DateTime.UtcNow.ToString();
+			transaction.Id = id;
+
+			await myConnection.OpenAsync();
+			SqlCommand myCommand = new SqlCommand("INSERT INTO Transactions (Id, Coast, CollaboratorsIds, CreationDate, DeadlineDate, Description, FinishedIds, InProgressIds, OwnerId, Title, OngoingDate) " +
+												  $"Values ({data.Id},'{data.Coast}', '{data.CollaboratorsIds}', '{data.CreationDate}', '{data.DeadlineDate}', N'{data.Description}', '{data.FinishedIds}', '{data.InProgressIds}', '{data.OwnerId}', N'{data.Title}', '{data.OngoingDate}')", myConnection);
+
+			await myCommand.ExecuteNonQueryAsync();
+
+			await SaveImagesAsync(transaction);
 		}
 
 		private async Task SaveImagesAsync(AddTransactionModel transactionModel)
@@ -122,7 +139,7 @@ namespace MoneyManager.Controllers
 			byte[] utf8Bytes = Encoding.UTF8.GetBytes(title.ToString().ToCharArray());
 
 			String str2 = Encoding.UTF8.GetString(utf8Bytes);
-
+			var aa = reader["InProgressIds"];
 
 			return new TransactionDataModel
 			{
@@ -130,9 +147,10 @@ namespace MoneyManager.Controllers
 				Coast = Double.Parse(reader["Coast"].ToString()),
 				CollaboratorsIds = reader["CollaboratorsIds"].ToString(),
 				FinishedIds = reader["FinishedIds"].ToString(),
-				InProgressIds = reader["FinishedIds"].ToString(),
+				InProgressIds = (reader["InProgressIds"] ?? new int[0]).ToString(),
 				CreationDate = reader["CreationDate"].ToString(),
 				DeadlineDate = reader["DeadlineDate"].ToString(),
+				OngoingDate = reader["OngoingDate"].ToString(),
 				Description = reader["Description"].ToString(),
 				OwnerId = Int32.Parse(reader["OwnerId"].ToString()),
 				Title = str2
@@ -161,9 +179,10 @@ namespace MoneyManager.Controllers
 					Id = data.Id,
 					CreationDate = DateTime.Parse(data.CreationDate),
 					DeadlineDate = DateTime.Parse(data.DeadlineDate),
-					InProgress = allUsers.Where(w => inProgressIds != null && inProgressIds.Contains(w.Id)),
+					InProgressIds = inProgressIds,
 					Owner = owner,
-					Finished = allUsers.Where(w => finishedIds != null && finishedIds.Contains(w.Id))
+					OngoingDate = DateTime.Parse(data.OngoingDate),
+					FinishedIds = finishedIds
 				});
 			}
 			return resultCollection;
@@ -174,13 +193,14 @@ namespace MoneyManager.Controllers
 			return new TransactionDataModel
 			{
 				Coast = model.Coast,
-				CollaboratorsIds = JsonConvert.SerializeObject(model.CollaboratorsIds),
+				CollaboratorsIds = JsonConvert.SerializeObject(model.CollaboratorsIds ?? new int[0]),
 				CreationDate = model.CreationDate.ToString(),
 				DeadlineDate = model.DeadlineDate.ToString(),
 				Description = model.Description,
-				FinishedIds = JsonConvert.SerializeObject(model.FinishedIds),
-				InProgressIds = JsonConvert.SerializeObject(model.InProgressIds),
-				Title = model.Title
+				FinishedIds = JsonConvert.SerializeObject(model.FinishedIds ?? new int[0]),
+				InProgressIds = JsonConvert.SerializeObject(model.InProgressIds ?? new int[0]),
+				Title = model.Title,
+				OngoingDate = model.OngoingDate.ToString()
 			};
 		}
 
@@ -247,7 +267,7 @@ namespace MoneyManager.Controllers
 			}
 
 			await myConnection.OpenAsync();
-			SqlCommand updateTokenCommand = new SqlCommand($"UPDATE Transactions SET CollaboratorsIds = '{JsonConvert.SerializeObject(inProgressIds)}' WHERE Id = '{transaction.Id}'", myConnection);
+			SqlCommand updateTokenCommand = new SqlCommand($"UPDATE Transactions SET InProgressIds = '{JsonConvert.SerializeObject(inProgressIds)}' WHERE Id = '{transaction.Id}'", myConnection);
 			await updateTokenCommand.ExecuteNonQueryAsync();
 
 			myConnection.Close();
@@ -271,6 +291,7 @@ namespace MoneyManager.Controllers
 
 			var collaboratorsIds = JsonConvert.DeserializeObject<int[]>(transaction.CollaboratorsIds);
 			var finishedIds = JsonConvert.DeserializeObject<int[]>(transaction.FinishedIds).ToList();
+			var inProgressIds = JsonConvert.DeserializeObject<int[]>(transaction.InProgressIds).ToList();
 
 			if (transaction.OwnerId != user.Id || collaboratorsIds.All(w => w != userId))
 			{
@@ -282,9 +303,98 @@ namespace MoneyManager.Controllers
 				finishedIds.Add(userId);
 			}
 
+			if(inProgressIds.Contains(userId))
+			{
+				inProgressIds.Remove(userId);
+			}
+
 			await myConnection.OpenAsync();
+
 			SqlCommand updateTokenCommand = new SqlCommand($"UPDATE Transactions SET FinishedIds = '{JsonConvert.SerializeObject(finishedIds)}' WHERE Id = '{transaction.Id}'", myConnection);
 			await updateTokenCommand.ExecuteNonQueryAsync();
+
+			SqlCommand updateInProgressCommand = new SqlCommand($"UPDATE Transactions SET InProgressIds = '{JsonConvert.SerializeObject(inProgressIds)}' WHERE Id = '{transaction.Id}'", myConnection);
+			await updateInProgressCommand.ExecuteNonQueryAsync();
+
+			myConnection.Close();
+
+			return new HttpStatusCodeResult(200);
+		}
+
+		[HttpPost]
+		public async Task<ActionResult> ApproveAll(int friendId)
+		{
+			var email = Request.Headers["X-USERNAME"];
+			var token = Request.Headers["X-TOKEN"];
+
+			var user = (await new UsersController().GetAllUsers()).FirstOrDefault(w => w.Email == email);
+
+			if (user == null || user.Token != token)
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			var allTransactions = await GetAllTransactions();
+			var incomingTransactions = allTransactions.Where(w => w.OwnerId == user.Id && !JsonConvert.DeserializeObject<int[]>(w.FinishedIds).Contains(friendId));
+			var outgoingTransactions = allTransactions.Where(w => w.OwnerId == friendId && !JsonConvert.DeserializeObject<int[]>(w.FinishedIds).Contains(user.Id));
+
+			if(!incomingTransactions.Any() || !outgoingTransactions.Any())
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.OK);
+			}
+
+			var incomingCost = incomingTransactions.Sum(w => w.Coast / w.CollaboratorsIds.Length);
+			var outGoingCost = outgoingTransactions.Sum(w => w.Coast / w.CollaboratorsIds.Length);
+
+			if (incomingCost < outGoingCost)
+			{
+				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+			}
+
+			await myConnection.OpenAsync();
+			foreach (var transaction in incomingTransactions)
+			{
+				var finishedIds = JsonConvert.DeserializeObject<int[]>(transaction.FinishedIds).ToList();
+				var inProgressIds = JsonConvert.DeserializeObject<int[]>(transaction.InProgressIds).ToList();
+
+				if (!finishedIds.Contains(friendId))
+				{
+					finishedIds.Add(friendId);
+				}
+
+				if (inProgressIds.Contains(friendId))
+				{
+					inProgressIds.Remove(friendId);
+				}
+
+				SqlCommand updateFinishedCommand = new SqlCommand($"UPDATE Transactions SET FinishedIds = '{JsonConvert.SerializeObject(finishedIds)}' WHERE Id = '{transaction.Id}'", myConnection);
+				await updateFinishedCommand.ExecuteNonQueryAsync();
+
+				SqlCommand updateInProgressCommand = new SqlCommand($"UPDATE Transactions SET InProgressIds = '{JsonConvert.SerializeObject(inProgressIds)}' WHERE Id = '{transaction.Id}'", myConnection);
+				await updateInProgressCommand.ExecuteNonQueryAsync();
+			}
+
+			foreach (var transaction in outgoingTransactions)
+			{
+				var finishedIds = JsonConvert.DeserializeObject<int[]>(transaction.FinishedIds).ToList();
+				var inProgressIds = JsonConvert.DeserializeObject<int[]>(transaction.InProgressIds).ToList();
+
+				if (!finishedIds.Contains(user.Id))
+				{
+					finishedIds.Add(user.Id);
+				}
+
+				if (inProgressIds.Contains(user.Id))
+				{
+					inProgressIds.Remove(user.Id);
+				}
+
+				SqlCommand updateFinishedCommand = new SqlCommand($"UPDATE Transactions SET FinishedIds = '{JsonConvert.SerializeObject(finishedIds)}' WHERE Id = '{transaction.Id}'", myConnection);
+				await updateFinishedCommand.ExecuteNonQueryAsync();
+
+				SqlCommand updateInProgressCommand = new SqlCommand($"UPDATE Transactions SET InProgressIds = '{JsonConvert.SerializeObject(inProgressIds)}' WHERE Id = '{transaction.Id}'", myConnection);
+				await updateInProgressCommand.ExecuteNonQueryAsync();
+			}
 
 			myConnection.Close();
 

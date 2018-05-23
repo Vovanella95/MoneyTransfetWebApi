@@ -89,7 +89,8 @@ namespace MoneyManager.Controllers
 				CollaboratorsIds nvarchar(1024),
 				InProgressIds nvarchar(1024),
 				FinishedIds nvarchar(1024),
-				Coast decimal);",
+				Coast decimal,
+				OngoingDate nvarchar(255));",
 				myConnection);
 
 			createTransactionsCommand.Connection = myConnection;
@@ -103,6 +104,11 @@ namespace MoneyManager.Controllers
 
 			try
 			{
+				if (!Directory.Exists($"{host}\\Images"))
+				{
+					Directory.CreateDirectory($"{host}\\Images");
+				}
+
 				var imageBytes = string.IsNullOrEmpty(userModel.ImageBase64String) ? null : Convert.FromBase64String(userModel.ImageBase64String);
 
 				if (imageBytes != null)
