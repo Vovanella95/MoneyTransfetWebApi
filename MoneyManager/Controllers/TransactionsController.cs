@@ -14,8 +14,7 @@ namespace MoneyManager.Controllers
 {
 	public class TransactionsController : Controller
 	{
-		SqlConnection myConnection = new SqlConnection("Server=tcp:circleserver.database.windows.net,1433;Initial Catalog=mediastoredb;Persist Security Info=False;User ID=uladzimir_paliukhovich;Password=Remember_me95;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
-
+		
 		public ActionResult Index()
 		{
 			return View();
@@ -26,7 +25,12 @@ namespace MoneyManager.Controllers
 			var transactions = (await GetAllTransactions());
 			var maped = await Map(transactions);
 
-			return View(maped);
+			return new JsonResult
+			{
+				Data = maped,
+				JsonRequestBehavior = JsonRequestBehavior.AllowGet
+			};
+
 		}
 
 		public async Task<ActionResult> Add(AddTransactionModel transaction)
