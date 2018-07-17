@@ -10,8 +10,6 @@ namespace MoneyManager.Controllers
 {
     public class UsersController : Controller
     {
-	    SqlConnection myConnection = new SqlConnection("Server=tcp:circleserver.database.windows.net,1433;Initial Catalog=mediastoredb;Persist Security Info=False;User ID=uladzimir_paliukhovich;Password=Remember_me95;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
-
 		public ActionResult Index()
         {
             return View();
