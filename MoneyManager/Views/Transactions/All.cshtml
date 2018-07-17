@@ -77,7 +77,8 @@
                 <div style="float:left">
                     @foreach (var user in item.Collaborators)
                     {
-                        @user.UserName &nbsp; @user.Surname <br />
+                        @Html.Raw($"{user.UserName} {user.Surname}");
+                        <br />
                     }
                 </div>
             </td>

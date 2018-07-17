@@ -75,7 +75,7 @@ namespace MoneyManager.Controllers
 				? new List<int>()
 				: JsonConvert.DeserializeObject<List<int>>(user.Friends);
 
-			if (userFriends.All(w => w == friendId))
+			if (userFriends.All(w => w != friendId))
 			{
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}

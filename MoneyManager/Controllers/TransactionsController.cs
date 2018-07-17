@@ -14,7 +14,8 @@ namespace MoneyManager.Controllers
 {
 	public class TransactionsController : Controller
 	{
-		
+		SqlConnection myConnection = new SqlConnection("Server=tcp:circleserver.database.windows.net,1433;Initial Catalog=mediastoredb;Persist Security Info=False;User ID=uladzimir_paliukhovich;Password=Remember_me95;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
+
 		public ActionResult Index()
 		{
 			return View();
@@ -52,6 +53,7 @@ namespace MoneyManager.Controllers
 			var data = Map(transaction);
 			data.Id = id;
 			data.OwnerId = user.Id;
+			transaction.Id = id;
 			data.CreationDate = DateTime.UtcNow.ToString();
 
 			await myConnection.OpenAsync();
@@ -185,7 +187,7 @@ namespace MoneyManager.Controllers
 					DeadlineDate = DateTime.Parse(data.DeadlineDate),
 					InProgressIds = inProgressIds,
 					Owner = owner,
-					OngoingDate = DateTime.Parse(data.OngoingDate),
+					OngoingDate = string.IsNullOrEmpty(data.OngoingDate) ? null as DateTime? : DateTime.Parse(data.OngoingDate),
 					FinishedIds = finishedIds
 				});
 			}
@@ -237,11 +239,9 @@ namespace MoneyManager.Controllers
 				transactions = transactions.Where(w => w.Owner.Id == byUserId || w.Collaborators.Any(ww => ww.Id == byUserId));
 			}
 
-			return new JsonResult
-			{
-				JsonRequestBehavior = JsonRequestBehavior.AllowGet,
-				Data = transactions
-			};
+			var result = JsonConvert.SerializeObject(transactions);
+
+			return Content(result);
 		}
 
 		[HttpPost]
@@ -307,7 +307,7 @@ namespace MoneyManager.Controllers
 				finishedIds.Add(userId);
 			}
 
-			if(inProgressIds.Contains(userId))
+			if (inProgressIds.Contains(userId))
 			{
 				inProgressIds.Remove(userId);
 			}
@@ -342,7 +342,7 @@ namespace MoneyManager.Controllers
 			var incomingTransactions = allTransactions.Where(w => w.OwnerId == user.Id && !JsonConvert.DeserializeObject<int[]>(w.FinishedIds).Contains(friendId));
 			var outgoingTransactions = allTransactions.Where(w => w.OwnerId == friendId && !JsonConvert.DeserializeObject<int[]>(w.FinishedIds).Contains(user.Id));
 
-			if(!incomingTransactions.Any() || !outgoingTransactions.Any())
+			if (!incomingTransactions.Any() || !outgoingTransactions.Any())
 			{
 				return new HttpStatusCodeResult(HttpStatusCode.OK);
 			}

@@ -18,7 +18,7 @@ namespace MoneyManager.Models
 		public IEnumerable<int> FinishedIds { get; set; }
 		public IEnumerable<int> InProgressIds { get; set; }
 		public double Coast { get; set; }
-		public DateTime OngoingDate { get; set; }
+		public DateTime? OngoingDate { get; set; }
 		public string ImageUrl => "http://" + System.Web.HttpContext.Current.Request.Url.Host + $"/Images?path={Id}-transaction.jpg";
 	}
 }
